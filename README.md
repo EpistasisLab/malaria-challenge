@@ -4,9 +4,9 @@ Subchallenge 2: predict Plasmodium falciparum clearance rate with mRNA expressio
 
 SubCh2_TrainingData.csv and SubCh1_TestData.csv are the training and testing datasets respectively.
 
-Training set - 1043 samples, 4952 transcriptomic features, plus 'Country' (categorical, 7 countries), 'Asexual.stage..hpi.' (continious feature), 'Kmeans.Grp' (categorical, 3 cluster groups correspond to three types of transcription profile, mainly defined by developmental stage of parasite, with GRP A consisted mostly of early stage parasites [8 to 10 hours post-invasion (hpi)], GRP B consisted predominately of middle to late stage parasites (10 to 20 hpi)), and GRP C
+Training set - 1043 samples, 4952 transcriptomic features, plus 'Country' (categorical, 7 countries), 'Asexual.stage..hpi.' (continuous feature), 'Kmeans.Grp' (categorical, 3 cluster groups correspond to three types of transcription profile, mainly defined by developmental stage of parasite, with GRP A consisted mostly of early stage parasites [8 to 10 hours post-invasion (hpi)], GRP B consisted predominately of middle to late stage parasites (10 to 20 hpi)), and GRP C
 
-Testing set - 32 samples (each with 2 timepoints 6 and 24 HRS, 2 biological replicates, and 2 treatments DNA and UT(control)), 4960 transcriptomic features (among them 8 MAL genes that are not present in training set), plus 'Country' (only 1 - Thailand_Myanmar_Border),'Asexual_Stage'(continious feature, correspond to the parasite developmental stage), and 'Isolate'(correspond to sample size).
+Testing set - 32 samples (each with 2 timepoints 6 and 24 HRS, 2 biological replicates, and 2 treatments DNA and UT(control)), 4960 transcriptomic features (among them 8 MAL genes that are not present in training set), plus 'Country' (only 1 - Thailand_Myanmar_Border),'Asexual_Stage'(continuous feature, corresponding to the parasite developmental stage), and 'Isolate'(correspond to sample size).
 
 Goals (preliminary): identify feature and sample subset for both training and testing sets (take into account stage of parasite development); propose transformation of the testing dataset with regard to the timepoint and the biological replicate variables. Establish if feature scales for both sets are comparable and whether a further transformation is needed.
 
