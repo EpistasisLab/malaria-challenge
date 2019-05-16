@@ -1,0 +1,33 @@
+---
+title: "Exploring"
+output: html_document
+---
+
+Load libraries:
+
+```{r}
+library(tidyverse)
+# library(skimr)
+```
+
+
+```{r}
+train_set <- read_csv('data/SubCh2/SubCh2_TrainingData.csv')
+test_set <- read_csv('data/SubCh2/SubCh2_TestData.csv')
+```
+
+
+Quick glance at the data:
+
+```{r}
+# skimr::skim(train_set)
+# skimr::skim(test_set)
+head(colnames(train_set))
+table(train_set$ClearanceRate)
+train_feats <- train_set %>%
+  dplyr::select(-c(1:4, ClearanceRate))
+summary(train_feats[,1:5])
+
+```
+
+
