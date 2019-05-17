@@ -7,27 +7,60 @@ Load libraries:
 
 ```{r}
 library(tidyverse)
-# library(skimr)
 ```
 
+Read data:
 
 ```{r}
-train_set <- read_csv('data/SubCh2/SubCh2_TrainingData.csv')
-test_set <- read_csv('data/SubCh2/SubCh2_TestData.csv')
+train_set <- data.table::fread('data/SubCh2/SubCh2_TrainingData.csv')
+test_set <- data.table::fread('data/SubCh2/SubCh2_TestData.csv')
+train_feats <- train_set %>%
+  dplyr::select(-c(1:4, ClearanceRate))
+test_feats <- test_set %>%
+  dplyr::select(-c(1:7, ClearanceRate))
 ```
 
 
 Quick glance at the data:
 
 ```{r}
-# skimr::skim(train_set)
-# skimr::skim(test_set)
 head(colnames(train_set))
 table(train_set$ClearanceRate)
-train_feats <- train_set %>%
-  dplyr::select(-c(1:4, ClearanceRate))
-summary(train_feats[,1:5])
 
+summary(train_feats[,1:5]) # Notes: some NAs
+boxplot(t(train_feats[1:5, ])) # check that the genes are quantile normalized
+
+head(colnames(test_set), 20)
+tail(colnames(test_set))
+str(test_set[, 1:10])
+```
+
+What are the standard deviations of each gene in training set?
+
+```{r}
+gene_sds <- apply(train_feats, 2, sd)
+summary(gene_sds)
+hist(gene_sds)
+
+str(train_feats)
+which.min(gene_sds)
+boxplot(train_feats[, 1:5])
+```
+
+How are the gene expressions associated with Treatment in test set?
+
+```{r}
+treat <- as.factor(test_set$Treatment)
+
+gene_treat_func <- function(x){
+  glm(treat ~ x, family = 'binomial') %>%
+    summary() %>% 
+    with(coefficients) %>%
+    .[2, "Pr(>|z|)"]
+}
+
+system.time(gene_treat_p <- apply(test_feats, 2, gene_treat_func))
+hist(gene_treat_p)
 ```
 
 
