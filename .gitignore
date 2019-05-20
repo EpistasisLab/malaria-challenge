@@ -1,8 +1,5 @@
 # Raw Data
-RawData/
-SubCh1/
-SubCh2/
-Submission_Files/
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
