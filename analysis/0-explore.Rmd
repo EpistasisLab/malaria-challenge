@@ -103,6 +103,7 @@ train_npdred <- train_set %>%
   dplyr::select(train_covars, npdr_genes)
 
 write.csv(train_npdred, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat_npdred.csv')
+save(npdr.cc.results, file = 'results/npdr_results.Rdata')
 ```
 
 
