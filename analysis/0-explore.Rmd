@@ -7,17 +7,23 @@ Load libraries:
 
 ```{r}
 library(tidyverse)
+library(npdr)
 ```
 
 Read data:
 
 ```{r}
-train_set <- data.table::fread('data/SubCh2/SubCh2_TrainingData.csv')
-test_set <- data.table::fread('data/SubCh2/SubCh2_TestData.csv')
+train_set <- data.table::fread('data/SubCh2/SubCh2_TrainingData_imputed_combat.csv')
+test_set <- data.table::fread('data/SubCh2/SubCh2_TestData_combat.csv')
+head(colnames(test_set), 10)
+train_covars <- c('Sample_Names', 'Country', 'Asexual.stage..hpi.', 
+                  'Kmeans.Grp', 'ClearanceRate')
+test_covars <- c('Sample_Names', 'Asexual_Stage', 'Country', 'Isolate',
+                 'Timepoint', 'Treatment', 'BioRep', 'ClearanceRate')
 train_feats <- train_set %>%
-  dplyr::select(-c(1:4, ClearanceRate))
+  dplyr::select(- train_covars)
 test_feats <- test_set %>%
-  dplyr::select(-c(1:7, ClearanceRate))
+  dplyr::select(- test_covars)
 ```
 
 
@@ -41,7 +47,7 @@ What are the standard deviations of each gene in training set?
 gene_sds <- apply(train_feats, 2, sd)
 summary(gene_sds)
 hist(gene_sds)
-
+# head(gene_sds)
 str(train_feats)
 which.min(gene_sds)
 boxplot(train_feats[, 1:5])
@@ -62,5 +68,42 @@ gene_treat_func <- function(x){
 system.time(gene_treat_p <- apply(test_feats, 2, gene_treat_func))
 hist(gene_treat_p)
 ```
+
+Save an example dataset with filtering:
+
+```{r}
+thres <- 0.6
+kept_genes <- names(gene_sds)[gene_sds > thres]
+train_filtered <- train_set %>%
+  dplyr::select(train_covars, kept_genes)
+
+write.csv(train_filtered, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat_ex_filtered.csv')
+```
+
+Try NPDR:
+
+```{r}
+cc.data <- train_set %>%
+  dplyr::select(ClearanceRate, names(train_feats))
+
+system.time(
+  npdr.cc.results <- 
+    npdr('ClearanceRate', cc.data, regression.type="binomial", 
+         attr.diff.type = "numeric-abs", nbd.method = "multisurf", 
+         nbd.metric = "manhattan", msurf.sd.frac = .5, 
+         padj.method = "bonferroni", verbose = T) # %>%
+    # mutate(npdr.log10 = -log10(pval.adj))
+)
+
+npdr_genes <- npdr.cc.results %>%
+  filter(pval.adj < 0.05) %>%
+  pull(att)
+
+train_npdred <- train_set %>%
+  dplyr::select(train_covars, npdr_genes)
+
+write.csv(train_npdred, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat_npdred.csv')
+```
+
 
 
