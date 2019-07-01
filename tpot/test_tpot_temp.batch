@@ -1,0 +1,15 @@
+#!/bin/bash
+#BSUB -J tpot_temp_malaria
+#BSUB -o /home/ttle/malaria/log/test_sim_reg.log
+#BSUB -e /home/ttle/malaria/log/test_sim_reg.err
+#BSUB -q moore_long
+#BSUB -M 60000
+#BSUB -R "span[hosts=1]"
+#BSUB -n 1
+
+#export PATH="/home/ttle/anaconda/bin:$PATH"
+cd /home/ttle/malaria
+
+source activate datasetSelector
+
+python run_tpot_temp.py
