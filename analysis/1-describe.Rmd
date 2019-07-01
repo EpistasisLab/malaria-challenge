@@ -1,0 +1,75 @@
+---
+title: "Descriptive statistics"
+output: html_document
+---
+---
+title: "1-descriptive-statistics"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(ranger)
+library(pROC)
+```
+
+
+
+```{r}
+# load('results/npdr_results.Rdata')
+set.seed(16183)
+npdr_dat <- read_csv('data/SubCh2/SubCh2_TrainingData_imputed_combat_npdred.csv')[, -1]
+head(colnames(npdr_dat))
+npdr_dat_01 <- npdr_dat %>%
+  filter(ClearanceRate %in% c(0, 1)) %>%
+  select(- Sample_Names, - Country)
+
+nsamps <- nrow(npdr_dat_01)
+head(colnames(npdr_dat_01))
+covs <- colnames(npdr_dat_01)[1:3]
+# write_csv(npdr_dat_01, 'data/SubCh2/SubCh2_TrainingData_for_tpot.csv')
+
+
+train_idx <- sample(seq(nsamps), floor(nsamps*0.75))
+npdr_train <- npdr_dat_01[train_idx, ]
+npdr_test <- npdr_dat_01[-train_idx, ]
+
+table(npdr_dat$ClearanceRate)
+head(colnames(npdr_dat), 10)
+
+```
+
+Baseline random forest:
+
+```{r}
+my_rf <- ranger::ranger(ClearanceRate ~ ., data = npdr_train, importance = 'impurity')
+pred <- predict(my_rf, npdr_test)
+pred_binary <- pred$predictions > 0.5
+mean(npdr_test$ClearanceRate == pred_binary)
+
+my_rf$importance.mode
+imp_df <- importance(my_rf) %>%
+  data.frame() %>% 
+  rownames_to_column('var') %>%
+  rename(value = '.')
+
+imp_df %>%
+  filter(var %in% covs)
+
+imp_df %>%
+  filter(value > 0.35) %>%
+  ggplot(aes(x = var, y = value)) + 
+  geom_point() +
+  coord_flip()
+# sum((npdr_test$ClearanceRate - pred$predictions)^2)
+```
+
+
+```{r}
+library(ROCit)
+## Warning: package 'ROCit' was built under R version 3.5.2
+ROCit_obj <- rocit(score=pred$predictions,npdr_test$ClearanceRate)
+ROCit_obj$AUC
+plot(ROCit_obj)
+```
+
