@@ -19,7 +19,7 @@ head(colnames(test_set), 10)
 train_covars <- c('Sample_Names', 'Country', 'Asexual.stage..hpi.', 
                   'Kmeans.Grp', 'ClearanceRate')
 test_covars <- c('Sample_Names', 'Asexual_Stage', 'Country', 'Isolate',
-                 'Timepoint', 'Treatment', 'BioRep', 'ClearanceRate')
+                 'Timepoint', 'Treatment', 'BioRep')
 train_feats <- train_set %>%
   dplyr::select(- train_covars)
 test_feats <- test_set %>%
