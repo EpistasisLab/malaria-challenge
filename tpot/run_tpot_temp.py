@@ -28,20 +28,14 @@ Ydata = tpot_data['ClearanceRate']
 X_train, X_test, y_train, y_test = train_test_split(Xdata, Ydata.values, random_state = 1618,
                                                     train_size=0.75, test_size=0.25)
 
-# del Xdata
-# del Ydata
-# del tpot_data
+del Xdata
+del Ydata
+del tpot_data
 
-def my_custom_accuracy(y_true, y_pred):
-    return average_precision_score(y_true, y_pred)
-
-my_custom_scorer = make_scorer(my_custom_accuracy, greater_is_better=True)
-
-# seed = 1
 for seed in range(100):
     tpot = TPOTClassifier(generations=n_gen, config_dict=personal_config,
                           population_size=n_pop, verbosity=2, random_state=seed,
-                          early_stop=20, scoring=my_custom_scorer,
+                          early_stop=20, scoring='average_precision',
                           template='Selector-Transformer-Classifier')
     tpot.fit(X_train, y_train)
     print(tpot.score(X_test, y_test))
