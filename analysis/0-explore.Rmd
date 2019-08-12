@@ -6,6 +6,7 @@ output: html_document
 Load libraries:
 
 ```{r}
+rm(list = ls())
 library(tidyverse)
 library(npdr)
 ```
@@ -14,6 +15,7 @@ Read data:
 
 ```{r}
 train_set <- data.table::fread('data/SubCh2/SubCh2_TrainingData_imputed_combat.csv')
+
 test_set <- data.table::fread('data/SubCh2/SubCh2_TestData_combat.csv')
 head(colnames(test_set), 10)
 train_covars <- c('Sample_Names', 'Country', 'Asexual.stage..hpi.', 
@@ -83,28 +85,88 @@ write.csv(train_filtered, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat
 Try NPDR:
 
 ```{r}
-cc.data <- train_set %>%
-  dplyr::select(ClearanceRate, names(train_feats))
-
-system.time(
-  npdr.cc.results <- 
-    npdr('ClearanceRate', cc.data, regression.type="binomial", 
-         attr.diff.type = "numeric-abs", nbd.method = "multisurf", 
-         nbd.metric = "manhattan", msurf.sd.frac = .5, 
-         padj.method = "bonferroni", verbose = T) # %>%
-    # mutate(npdr.log10 = -log10(pval.adj))
-)
-
-npdr_genes <- npdr.cc.results %>%
-  filter(pval.adj < 0.05) %>%
-  pull(att)
-
-train_npdred <- train_set %>%
-  dplyr::select(train_covars, npdr_genes)
-
-write.csv(train_npdred, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat_npdred.csv')
-save(npdr.cc.results, file = 'results/npdr_results.Rdata')
+# cc.data <- train_set %>%
+#   dplyr::select(ClearanceRate, names(train_feats))
+# 
+# system.time(
+#   npdr.cc.results <- 
+#     npdr('ClearanceRate', cc.data, regression.type="binomial", 
+#          attr.diff.type = "numeric-abs", nbd.method = "multisurf", 
+#          nbd.metric = "manhattan", msurf.sd.frac = .5, 
+#          padj.method = "bonferroni", verbose = T) # %>%
+#     # mutate(npdr.log10 = -log10(pval.adj))
+# )
+# 
+# npdr_genes <- npdr.cc.results %>%
+#   filter(pval.adj < 0.05) %>%
+#   pull(att)
+# 
+# train_npdred <- train_set %>%
+#   dplyr::select(train_covars, npdr_genes)
+# 
+# write.csv(train_npdred, file = 'data/SubCh2/SubCh2_TrainingData_imputed_combat_npdred.csv')
+# save(npdr.cc.results, file = 'results/npdr_results.Rdata')
 ```
 
+Generate average time point:
 
+```{r}
+test_ut <- test_set %>%
+  filter(Treatment == 'UT')
+
+alpha <- 1/3
+test_ut_24 <- test_ut %>%
+  filter(Timepoint == '24HR') %>%
+  dplyr::select(Isolate, BioRep, colnames(train_feats))
+test_ut_6 <- test_ut %>%
+  filter(Timepoint == '6HR') %>%
+  dplyr::select(Isolate, BioRep, colnames(train_feats))
+
+# test_ut_6[,1] == test_ut_24[,1]
+# test_ut_6[,2] == test_ut_24[,2]
+
+test_ut_24_mat <- test_ut_24 %>%
+  dplyr::select(- Isolate, - BioRep) %>%
+  as.matrix()
+test_ut_6_mat <- test_ut_6 %>%
+  dplyr::select(- Isolate, - BioRep) %>%
+  as.matrix() 
+test_ut_avg_time <- (1/3*test_ut_6_mat + 2/3 * test_ut_24_mat) %>%
+  data.frame() %>%
+  mutate(Isolate = test_ut_6$Isolate,
+         BioRep = test_ut_6$BioRep) %>%
+  dplyr::select(Isolate, BioRep, everything())
+
+test_x <- test_ut_avg_time %>%
+  filter(BioRep == 'BRep2') %>%
+  dplyr::select(colnames(train_feats))
+boxplot(cbind(t(test_x[1:5, ]), t(train_feats[1:5, ])))
+
+write.csv(train_filtered, file = 'data/SubCh2/SubCh2_TestData_combat_avg_timepoint.csv')
+```
+
+Examine asexual stage (stage of the parasite based on its transcriptional profile):
+
+```{r}
+test_24_1 <- test_ut %>%
+  filter(BioRep == 'BRep1' & Timepoint == '24HR') 
+test_24_2 <- test_ut %>%
+  filter(BioRep == 'BRep2' & Timepoint == '24HR') 
+test_6_1 <- test_ut %>%
+  filter(BioRep == 'BRep1' & Timepoint == '6HR') 
+test_6_2 <- test_ut %>%
+  filter(BioRep == 'BRep2' & Timepoint == '6HR') 
+
+boxplot(train_raw$Asexual.stage..hpi., 
+        test_6_1$Asexual_Stage,
+        test_6_2$Asexual_Stage,
+        test_24_1$Asexual_Stage,
+        test_24_2$Asexual_Stage)
+
+table(test_6_1$Asexual_Stage)
+table(test_6_2$Asexual_Stage)
+table(test_24_1$Asexual_Stage)
+table(test_24_2$Asexual_Stage) 
+table(train_set$Asexual.stage..hpi.)
+```
 
