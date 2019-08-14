@@ -17,15 +17,27 @@ Read data:
 train_set <- data.table::fread('data/SubCh2/SubCh2_TrainingData_imputed_combat.csv')
 
 test_set <- data.table::fread('data/SubCh2/SubCh2_TestData_combat.csv')
-head(colnames(test_set), 10)
+head(colnames(train_set), 10)
 train_covars <- c('Sample_Names', 'Country', 'Asexual.stage..hpi.', 
                   'Kmeans.Grp', 'ClearanceRate')
 test_covars <- c('Sample_Names', 'Asexual_Stage', 'Country', 'Isolate',
                  'Timepoint', 'Treatment', 'BioRep')
 train_feats <- train_set %>%
   dplyr::select(- train_covars)
+test_demo <-  test_set %>%
+  dplyr::select(test_covars)
 test_feats <- test_set %>%
   dplyr::select(- test_covars)
+```
+
+```{r}
+plot(train_set$Asexual.stage..hpi., train_set$ClearanceRate)
+lm(ClearanceRate ~ Asexual.stage..hpi., data = train_set) %>%
+  summary()
+
+ggplot(train_set, aes(x = Asexual.stage..hpi., y = ClearanceRate)) +
+  geom_jitter()
+table(train_set$ClearanceRate)
 ```
 
 
@@ -59,7 +71,7 @@ How are the gene expressions associated with Treatment in test set?
 
 ```{r}
 treat <- as.factor(test_set$Treatment)
-
+table(test_set$Treatment)
 gene_treat_func <- function(x){
   glm(treat ~ x, family = 'binomial') %>%
     summary() %>% 
@@ -142,12 +154,13 @@ test_x <- test_ut_avg_time %>%
   dplyr::select(colnames(train_feats))
 boxplot(cbind(t(test_x[1:5, ]), t(train_feats[1:5, ])))
 
-write.csv(train_filtered, file = 'data/SubCh2/SubCh2_TestData_combat_avg_timepoint.csv')
+write.csv(test_ut_avg_time, file = 'data/SubCh2/SubCh2_TestData_combat_avg_timepoint.csv')
 ```
 
 Examine asexual stage (stage of the parasite based on its transcriptional profile):
 
 ```{r}
+table(test_ut$BioRep)
 test_24_1 <- test_ut %>%
   filter(BioRep == 'BRep1' & Timepoint == '24HR') 
 test_24_2 <- test_ut %>%
@@ -157,16 +170,103 @@ test_6_1 <- test_ut %>%
 test_6_2 <- test_ut %>%
   filter(BioRep == 'BRep2' & Timepoint == '6HR') 
 
-boxplot(train_raw$Asexual.stage..hpi., 
+boxplot(train_set$Asexual.stage..hpi., 
         test_6_1$Asexual_Stage,
         test_6_2$Asexual_Stage,
+        test_6_3$Asexual_Stage,
+        test_6_4$Asexual_Stage,
         test_24_1$Asexual_Stage,
         test_24_2$Asexual_Stage)
 
 table(test_6_1$Asexual_Stage)
 table(test_6_2$Asexual_Stage)
+table(test_6_3$Asexual_Stage)
 table(test_24_1$Asexual_Stage)
-table(test_24_2$Asexual_Stage) 
+table(test_24_2$Asexual_Stage)
 table(train_set$Asexual.stage..hpi.)
+```
+
+What about other biological replicates?
+
+```{r}
+test_ut %>%
+  filter(!(BioRep %in% c('BRep1', 'BRep2'))) %>%
+  .[, 1:4] 
+# Looks like isolate 2 and 27 have more than two bioreps.
+test_ut %>%
+  filter(Isolate == 'isolate_27') %>%
+  .[, 1:4] 
+test_ut %>%
+  filter(Isolate == 'isolate_02') %>%
+  .[, 1:4] 
+# For both isolates 2 and 27, looks like biorep 2 is sufficient 
+# (low enough asexual stage)
+```
+
+
+```{r}
+write.csv(test_24_2[,c(2,4)], file = 'data/SubCh2/TestAsexualStage_24_2.csv')
+```
+Let's look at 20 and 22:
+
+```{r}
+test_ut %>%
+  filter(Isolate == 'isolate_20') %>%
+  .[, 1:4]
+
+test_ut %>%
+  filter(Isolate == 'isolate_22') %>%
+  .[, 1:4]
+```
+
+Overall min of asexual stage
+```{r}
+min_as_df <- test_ut %>%
+  group_by(Isolate) %>%
+  summarise(Asexual_Stage = min(Asexual_Stage))
+
+merged_ut <- left_join(min_as_df, test_ut, by = c('Isolate', 'Asexual_Stage'))
+merged_ut <- merged_ut[!duplicated(merged_ut$Isolate),] %>%
+  dplyr::select(Isolate, BioRep, Timepoint, colnames(train_feats))
+merged_short <- merged_ut[, 1:8]
+write.csv(merged_ut, file = 'data/SubCh2/SubCh2_TestData_combat_min_as.csv')
+```
+
+
+Within time point:
+```{r}
+min_as_df <- test_ut %>%
+  group_by(Isolate, Timepoint) %>%
+  summarise(Asexual_Stage = min(Asexual_Stage))
+
+merged_ut <- left_join(min_as_df, test_ut, by = c('Isolate', 'Asexual_Stage', 'Timepoint'))
+merged_ut <- merged_ut[!duplicated(merged_ut[c('Isolate', 'Timepoint')]), ] %>%
+  dplyr::select(Isolate, BioRep, Timepoint, Asexual_Stage, colnames(train_feats))
+merged_short <- merged_ut[, 1:8]
+write.csv(merged_ut, file = 'data/SubCh2/SubCh2_TestData_combat_min_as_24_6.csv')
+```
+
+
+```{r}
+library(scales)
+
+sum(train_set$Asexual.stage..hpi. >= 18)
+table(train_set$Asexual.stage..hpi.)
+summary(test_set$Asexual_Stage)
+stage_df <- data.frame(
+  Stage = c(train_set$Asexual.stage..hpi., test_set$Asexual_Stage),
+           Dataset = c(rep('Training set', nrow(train_set)), rep('Testing set', nrow(test_set))))
+
+stage_plot <- ggplot(stage_df, aes(x = Stage, fill = Dataset)) +
+  geom_bar(alpha = 0.5) + 
+  scale_y_continuous(trans = log2_trans()) +
+  labs(x = 'Developmental stage', y = 'Count (log scale)') +
+  theme_bw() + 
+  theme(legend.position = c(0.85, 0.8),
+        legend.title = element_blank())
+
+stage_plot
+
+ggsave(stage_plot, filename = 'dev-stage.png', height = 3, width = 5)
 ```
 
