@@ -1,0 +1,41 @@
+---
+title: "Look at 19 pipelines results"
+output: html_document
+---
+```{r}
+library(stringr)
+```
+
+
+```{r}
+all_19_pipes <- read.csv('results/testing_set_class_values_all.csv')
+
+aug_all_19_pipes <- all_19_pipes %>%
+  rename(Sample_Names = 'Isolate') %>%
+  left_join(test_demo, by = 'Sample_Names') %>%
+  dplyr::select(-Country, -Sample_Names)
+aug_all_19_pipes %>%
+  write.csv('results/augmented_testing_set_class_values_all.csv')
+
+aug_all_19_pipes %>%
+  filter(Treatment == 'UT') %>%
+  write.csv('results/augmented_testing_set_class_values_ut.csv')
+plot(aug_all_19_pipes$Asexual_Stage, aug_all_19_pipes$Probability)
+```
+
+
+UT, 24HR, average prediction
+
+```{r}
+pred_df <- aug_all_19_pipes %>%
+  filter(Timepoint == '24HR') %>%
+  group_by(Isolate) %>%
+  summarise(final_prob = mean(sort(Probability)[1:2])) %>%
+  rename(Probability = final_prob) %>%
+  mutate(Predicted_Categorical_Clearance = ifelse(
+    Probability > 0.5, 'FAST', 'SLOW'
+  )) %>%
+  dplyr::select(Isolate, Predicted_Categorical_Clearance, Probability) %>%
+  write_delim('tpot_24HR_predictions.txt', delim = '\t')
+```
+
