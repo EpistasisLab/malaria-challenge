@@ -44,8 +44,11 @@ Baseline random forest:
 ```{r}
 my_rf <- ranger::ranger(ClearanceRate ~ ., data = npdr_train, importance = 'impurity')
 pred <- predict(my_rf, npdr_test)
-pred_binary <- pred$predictions > 0.5
+pred_binary <- (pred$predictions > 0.5) %>% as.factor()
 mean(npdr_test$ClearanceRate == pred_binary)
+y_true <- as.factor(npdr_test$ClearanceRate)
+levels(y_true) <- c('FALSE', 'TRUE')
+caret::confusionMatrix(pred_binary, y_true)
 
 my_rf$importance.mode
 imp_df <- importance(my_rf) %>%
@@ -64,6 +67,7 @@ imp_df %>%
 # sum((npdr_test$ClearanceRate - pred$predictions)^2)
 ```
 
+Random forest balanced accuracy : 0.64092; sensitivity : 0.32051; specificity : 0.96133.
 
 ```{r}
 library(ROCit)
